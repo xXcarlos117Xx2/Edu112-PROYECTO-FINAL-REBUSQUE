@@ -11,6 +11,15 @@ from api.routes import api
 from api.admin import setup_admin
 from api.commands import setup_commands
 
+from flask_cors import CORS
+
+# importa la instancia de SQLAlchemy y tus modelos
+from api.models import db  # asegúrate de NO recrear db en models.py
+# importa tu Blueprint principal (ajusta el nombre si es distinto)
+from api.routes import api as api_bp
+# registra comandos CLI (insert-test-data, etc.)
+from api.commands import setup_commands
+
 # from models import Person
 
 ENV = "development" if os.getenv("FLASK_DEBUG") == "1" else "production"
@@ -31,42 +40,41 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 MIGRATE = Migrate(app, db, compare_type=True)
 db.init_app(app)
 
-# add the admin
-setup_admin(app)
-
-# add the admin
-setup_commands(app)
-
-# Add all endpoints form the API with a "api" prefix
-app.register_blueprint(api, url_prefix='/api')
-
-# Handle/serialize errors like a JSON object
+#################
 
 
-@app.errorhandler(APIException)
-def handle_invalid_usage(error):
-    return jsonify(error.to_dict()), error.status_code
+def create_app():
+    app = Flask(__name__)
 
-# generate sitemap with all your endpoints
+    # ---- Config ----
+    # Usa .env / variables de entorno; cae en SQLite para dev
+    app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv(
+        "DATABASE_URL", "sqlite:///dev.db"
+    )
+    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+    app.config["JSON_SORT_KEYS"] = False
+
+    # ---- Extensiones ----
+    db.init_app(app)
+    Migrate(app, db)
+    CORS(app, resources={r"/api/*": {"origins": "*"}})
+
+    # ---- Rutas / Blueprints ----
+    app.register_blueprint(api_bp, url_prefix="/api")
+
+    # ---- Comandos CLI ----
+    setup_commands(app)
+
+    # ---- Rutas de salud (opcional) ----
+    @app.get("/health")
+    def health():
+        return jsonify({"status": "ok"})
+
+    return app
 
 
-@app.route('/')
-def sitemap():
-    if ENV == "development":
-        return generate_sitemap(app)
-    return send_from_directory(static_file_dir, 'index.html')
-
-# any other endpoint will try to serve it like a static file
-@app.route('/<path:path>', methods=['GET'])
-def serve_any_other_file(path):
-    if not os.path.isfile(os.path.join(static_file_dir, path)):
-        path = 'index.html'
-    response = send_from_directory(static_file_dir, path)
-    response.cache_control.max_age = 0  # avoid cache memory
-    return response
-
-
-# this only runs if `$ python src/main.py` is executed
-if __name__ == '__main__':
-    PORT = int(os.environ.get('PORT', 3001))
-    app.run(host='0.0.0.0', port=PORT, debug=True)
+# Opción para ejecutar directamente: `python -m flask --app src.app:create_app run`
+if __name__ == "__main__":
+    # Útil si quieres ejecutar sin Pipenv scripts
+    app = create_app()
+    app.run(host="0.0.0.0", port=int(os.getenv("PORT", 3001)), debug=True)

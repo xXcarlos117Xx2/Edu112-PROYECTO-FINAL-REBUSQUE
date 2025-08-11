@@ -1,34 +1,67 @@
-
+# src/api/commands.py
 import click
-from api.models import db, User
+from flask.cli import with_appcontext
+from api.models import db, User, ClientProfile, Category, WorkerProfile, ServiceRequest
 
-"""
-In this file, you can add as many commands as you want using the @app.cli.command decorator
-Flask commands are usefull to run cronjobs or tasks outside of the API but sill in integration 
-with youy database, for example: Import the price of bitcoin every night as 12am
-"""
-def setup_commands(app):
-    
-    """ 
-    This is an example command "insert-test-users" that you can run from the command line
-    by typing: $ flask insert-test-users 5
-    Note: 5 is the number of users to add
-    """
-    @app.cli.command("insert-test-users") # name of our command
-    @click.argument("count") # argument of out command
-    def insert_test_users(count):
-        print("Creating test users")
-        for x in range(1, int(count) + 1):
-            user = User()
-            user.email = "test_user" + str(x) + "@test.com"
-            user.password = "123456"
-            user.is_active = True
-            db.session.add(user)
-            db.session.commit()
-            print("User: ", user.email, " created.")
+# Profesiones (categorías)
+PROFESIONES = [
+    ("Carpintero",   "carpintero"),
+    ("Fontanero",    "fontanero"),
+    ("Electricista", "electricista"),
+    ("Cristalero",   "cristalero"),
+]
 
-        print("All test users created")
+@click.command("insert-test-data")
+@with_appcontext
+def insert_test_data():
+    # 1) Profesiones (categorías)
+    for name, slug in PROFESIONES:
+        if not Category.query.filter_by(slug=slug).first():
+            db.session.add(Category(name=name, slug=slug))
+    db.session.commit()
 
-    @app.cli.command("insert-test-data")
-    def insert_test_data():
-        pass
+    # 2) Cliente demo
+    cliente = User.query.filter_by(email="cliente@example.com").first()
+    if not cliente:
+        cliente = User(email="cliente@example.com", password="secret", is_active=True)
+        db.session.add(cliente); db.session.flush()
+        db.session.add(ClientProfile(user_id=cliente.id))
+        db.session.commit()
+
+    # 3) Trabajadores demo (uno por profesión)
+    trabajadores = [
+        ("Juan Carpintero",  "Madrid",    "carpintero"),
+        ("Ana Fontanera",    "Barcelona", "fontanero"),
+        ("Luis Electricista","Valencia",  "electricista"),
+        ("Marta Cristalera", "Sevilla",   "cristalero"),
+    ]
+    for full_name, city, slug in trabajadores:
+        email = f"{slug}@demo.local"
+        if not User.query.filter_by(email=email).first():
+            u = User(email=email, password="secret", is_active=True)
+            db.session.add(u); db.session.flush()
+            db.session.add(WorkerProfile(user_id=u.id, full_name=full_name, city=city))
+    db.session.commit()
+
+    # 4) Solicitudes de ejemplo (vinculadas a profesiones)
+    cp = ClientProfile.query.filter_by(user_id=cliente.id).first()
+    ejemplos = [
+        ("Montar estantería de pino", "carpintero"),
+        ("Arreglo de fuga en fregadero", "fontanero"),
+    ]
+    for title, slug in ejemplos:
+        cat = Category.query.filter_by(slug=slug).first()
+        if cat and not ServiceRequest.query.filter_by(title=title).first():
+            db.session.add(ServiceRequest(
+                title=title, client_id=cp.id, category_id=cat.id, status="new"
+            ))
+    db.session.commit()
+
+    click.echo("✅ Datos de prueba insertados: profesiones, cliente, 4 trabajadores y solicitudes.")
+
+# Probar rápido
+# GET /api/categories → debe listar las 4 profesiones.
+
+# GET /api/workers?city=Madrid → devuelve “Juan Carpintero” (y así con otras ciudades).
+
+# GET /api/service-requests → verás las solicitudes de ejemplo.
