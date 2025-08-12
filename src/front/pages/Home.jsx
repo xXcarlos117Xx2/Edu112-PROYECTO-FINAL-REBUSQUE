@@ -1,52 +1,35 @@
-import React, { useEffect } from "react"
+import React, { useEffect, useState } from "react"
 import rigoImageUrl from "../assets/img/rigo-baby.jpg";
 import useGlobalReducer from "../hooks/useGlobalReducer.jsx";
+import { RegisterForm } from "../components/RegisterForm.jsx";
+import coffeman from "../assets/img/hombrePC.jpg"
+
+
 
 export const Home = () => {
 
-	const { store, dispatch } = useGlobalReducer()
-
-	const loadMessage = async () => {
-		try {
-			const backendUrl = import.meta.env.VITE_BACKEND_URL
-
-			if (!backendUrl) throw new Error("VITE_BACKEND_URL is not defined in .env file")
-
-			const response = await fetch(backendUrl + "/api/hello")
-			const data = await response.json()
-
-			if (response.ok) dispatch({ type: "set_hello", payload: data.message })
-
-			return data
-
-		} catch (error) {
-			if (error.message) throw new Error(
-				`Could not fetch the message from the backend.
-				Please check if the backend is running and the backend port is public.`
-			);
-		}
-
-	}
-
-	useEffect(() => {
-		loadMessage()
-	}, [])
+	const [isLoggedIn, setIsLoggedIn] = useState(true)
 
 	return (
-		<div className="text-center mt-5">
-			<h1 className="display-4">Hello Rigo!!</h1>
-			<p className="lead">
-				<img src={rigoImageUrl} className="img-fluid rounded-circle mb-3" alt="Rigo Baby" />
-			</p>
-			<div className="alert alert-info">
-				{store.message ? (
-					<span>{store.message}</span>
-				) : (
-					<span className="text-danger">
-						Loading message from the backend (make sure your python 🐍 backend is running)...
-					</span>
-				)}
+		<>
+			<div className="container">
+
+				<div className="row">
+					<section className="col-6 d-flex justify-content-center align-items-center flex-column">
+						<div className="col-12 ps-3">
+							<h1 className="text-start mb-3">{isLoggedIn ? "Login" : "Sign Up"}</h1>
+							<h6 className="text-start mb-3">Join top freelancers on Freelance</h6>
+						</div>
+						<RegisterForm isLoggedIn = {isLoggedIn}/>
+					</section>
+
+					<section className="col-6">
+						<img style={{ width: 500, height: "auto" }} src={coffeman} />
+					</section>
+
+				</div>
+
 			</div>
-		</div>
+		</>
 	);
 }; 

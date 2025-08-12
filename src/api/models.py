@@ -2,9 +2,9 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.sql import func
 from flask_migrate import Migrate
 
-db = SQLAlchemy()   # usa la misma instancia que el proyecto
+db = SQLAlchemy()  
 
-# ---- modelos mínimos que routes.py y las FK necesitan ----
+
 class User(db.Model):
     __tablename__ = "users"
     id = db.Column(db.Integer, primary_key=True)
@@ -23,7 +23,7 @@ class Category(db.Model):
     __tablename__ = "categories"
     id = db.Column(db.Integer, primary_key=True)
 
-# ---- tu tabla mini (déjala tal cual la tenías) ----
+
 class ServiceRequest(db.Model):  # solicitud de servicio
     __tablename__ = "service_requests"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)

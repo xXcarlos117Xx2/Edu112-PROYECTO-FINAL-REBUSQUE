@@ -9,7 +9,7 @@ from api.utils import APIException, generate_sitemap
 from api.models import db
 from api.routes import api
 from api.admin import setup_admin
-from api.commands import setup_commands
+# from api.commands import setup_commands
 
 from flask_cors import CORS
 
@@ -18,7 +18,7 @@ from api.models import db  # asegúrate de NO recrear db en models.py
 # importa tu Blueprint principal (ajusta el nombre si es distinto)
 from api.routes import api as api_bp
 # registra comandos CLI (insert-test-data, etc.)
-from api.commands import setup_commands
+# from api.commands import setup_commands
 
 # from models import Person
 
@@ -62,8 +62,8 @@ def create_app():
     # ---- Rutas / Blueprints ----
     app.register_blueprint(api_bp, url_prefix="/api")
 
-    # ---- Comandos CLI ----
-    setup_commands(app)
+    # # ---- Comandos CLI ----
+    # setup_commands(app)
 
     # ---- Rutas de salud (opcional) ----
     @app.get("/health")
